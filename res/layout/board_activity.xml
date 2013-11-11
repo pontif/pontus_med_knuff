@@ -1,0 +1,25 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#111111" >
+    
+    <!-- <EditText
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" 
+        android:layout_weight="1"
+        android:gravity="left"/> -->
+
+    <se.pontusfernstrom.pontusmedknuff.BoardView
+        android:id="@+id/boardview_content"
+        android:layout_width="700dp"
+        android:layout_height="700dp"
+        android:layout_gravity="center"
+        android:keepScreenOn="true" />
+    
+    <!-- <EditText
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" 
+        android:layout_weight="1"
+        android:gravity="right"/> -->
+
+</FrameLayout>

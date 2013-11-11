@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Pontus med knuff</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="board_activity_name">Spelbrade</string>
+
+</resources>
