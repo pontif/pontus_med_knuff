@@ -31,7 +31,7 @@ public class BoardView extends View implements OnTouchListener {
 		YELLOW
 	}
 	
-	private final int N_STEPS = 61;
+	private final int N_STEPS = 57;
 	private final int N_NESTS = 4;
 	private final int ILLEGAL_STEP = Integer.MAX_VALUE;
 	private final int N_PIECES = 16;
@@ -48,11 +48,12 @@ public class BoardView extends View implements OnTouchListener {
 	private double mPieceRadius;
 	
 	private State mState;
-	private int mSelectedPieceStep;
+	//private int mSelectedPieceStep;
+	private BoardTile mSelectedTile;
+	private Step mNextStepGlobal;
 	private Player mPlayer;
-	private int mColor;
+	private int boardViewColor;
 	private Dice mDice;
-	private int mNextStep;
 	
 	private Bitmap  mBitmap;
 	
@@ -96,16 +97,14 @@ public class BoardView extends View implements OnTouchListener {
 	
 	private void initBoardView() {
 		this.mState = State.NONE_SELECTED;
-		this.mSelectedPieceStep = ILLEGAL_STEP;
+		this.mNextStepGlobal = null;
 		this.mPlayer = Player.BLUE;
 		this.mDice = new Dice();
-		this.mColor = Color.BLUE;
+		this.boardViewColor = Color.BLUE;
 	}
 	
 	
 	private void resetBoardView() {
-		int i;
-		
 		mDice.reset();
 		
 		// Perimeter steps
@@ -168,37 +167,38 @@ public class BoardView extends View implements OnTouchListener {
 		mSteps[55] = new Step(5 * mStepBox, 6 * mStepBox, mStepRadius, Color.WHITE, Color.YELLOW);
 		// Exit step
 		mSteps[56] = new Step(6 * mStepBox, 6 * mStepBox, mStepRadius, Color.WHITE);
+		
 		// Nests
-		mSteps[57] = new Step(9.5 * mStepBox, 2.5 * mStepBox, 3 * mStepRadius, Color.BLUE);
+		/*mSteps[57] = new Step(9.5 * mStepBox, 2.5 * mStepBox, 3 * mStepRadius, Color.BLUE);
 		mSteps[58] = new Step(9.5 * mStepBox, 9.5 * mStepBox, 3 * mStepRadius, Color.GREEN);
 		mSteps[59] = new Step(2.5 * mStepBox, 9.5 * mStepBox, 3 * mStepRadius, Color.RED);
 		mSteps[60] = new Step(2.5 * mStepBox, 2.5 * mStepBox, 3 * mStepRadius, Color.YELLOW);
-		
-		for (i = 0; i < N_PIECES_PER_PLAYER; i++)
-		{
-			mPieces[i] = new Piece(57, Color.BLUE);
-			mSteps[57].putPiece(mPieces[i]);
-			mPieces[N_PIECES_PER_PLAYER + i] = new Piece(58, Color.GREEN);
-			mSteps[58].putPiece(mPieces[N_PIECES_PER_PLAYER + i]);
-			mPieces[2 * N_PIECES_PER_PLAYER + i] = new Piece(59, Color.RED);
-			mSteps[59].putPiece(mPieces[2 * N_PIECES_PER_PLAYER + i]);
-			mPieces[3 * N_PIECES_PER_PLAYER + i] = new Piece(60, Color.YELLOW);
-			mSteps[60].putPiece(mPieces[3 * N_PIECES_PER_PLAYER + i]);
-		}
+		*/
+		this.mNests[0]= new Nest(9.5 * mStepBox, 2.5 * mStepBox, 3 * mStepRadius, Color.BLUE);
+		this.mNests[1]= new Nest(9.5 * mStepBox, 9.5 * mStepBox, 3 * mStepRadius, Color.GREEN);
+		this.mNests[2]= new Nest(2.5 * mStepBox, 9.5 * mStepBox, 3 * mStepRadius, Color.RED);
+		this.mNests[3]= new Nest(2.5 * mStepBox, 2.5 * mStepBox, 3 * mStepRadius, Color.YELLOW);
 	}
 	
 	private void drawBackground(Canvas canvas) {
 		int step;
+		int nest;
 		Paint paint = new Paint();
 		canvas.drawColor(Color.MAGENTA);
-		BoardView view = (BoardView)findViewById(R.id.boardview_content);
-		int width = view.getWidth();
 		
+		// Draw steps
 		for (step = 0; step < mSteps.length; step++)
 		{
 			mSteps[step].draw(canvas);
 		}
 		
+		// Draw nests
+		for (nest = 0; nest < mNests.length; nest++)
+		{
+			mNests[nest].draw(canvas);
+		}
+		
+		// Draw center
 		paint.setColor(Color.BLUE);
 		canvas.drawCircle((float)(6 * mStepBox), (float)(6 * mStepBox), (float)(mStepRadius * 0.8), paint);
 		paint.setColor(Color.GREEN);
@@ -209,61 +209,71 @@ public class BoardView extends View implements OnTouchListener {
 		canvas.drawCircle((float)(6 * mStepBox), (float)(6 * mStepBox), (float)(mStepRadius * 0.8 * 0.4), paint);
 		paint.setColor(Color.MAGENTA);
 		canvas.drawCircle((float)(6 * mStepBox), (float)(6 * mStepBox), (float)(mStepRadius * 0.8 * 0.2), paint);
-		
-		/*
-	    Toast message = Toast.makeText(this.getContext(), "view.getWidth(): " + view.getWidth(), Toast.LENGTH_SHORT);       
-	    message.show();  
-		message = Toast.makeText(this.getContext(), "view.getHeight(): " + view.getHeight(), Toast.LENGTH_SHORT);       
-	    message.show();*/
-	    
 	}
 
 	private void drawPieces(Canvas canvas) {
 		int step;
+		int nest;
 		
 		for (step = 0; step < mSteps.length; step++)
 		{
 			mSteps[step].drawPieces(canvas);
 		}
+		for (nest = 0; nest < mNests.length; nest++)
+		{
+			mNests[nest].drawPieces(canvas);
+		}
 	}
+	
 	private void drawDice(Canvas canvas) {
 		mDice.draw(canvas);
 	}
 	
 	private class Piece {
-		private int step;
-		private int color;
-		private boolean selected;
+		private int mColor;
+		private boolean mSelected;
+		public BoardTile mBoardTile;
 		
-		public Piece(int step, int color)
+		public Piece(BoardTile boardTile, int color)
 		{
-			this.color = color;
-			this.step = step;
-			this.selected = false;
+			this.mColor = color;
+			this.mBoardTile = boardTile;
+			this.mSelected = false;
 		}
 		
+		public Piece(Piece piece) {
+			this.mColor = piece.mColor;
+			this.mSelected = piece.mSelected;
+			this.mBoardTile = piece.mBoardTile;
+		}
+
 		public int getColor()
 		{
-			return this.color;
+			return this.mColor;
 		}
 		
 		public void select()
 		{
-			this.selected = true;
+			this.mSelected = true;
 		}
 
 		public void deselect() 
 		{
-			this.selected = false;
+			assert(this.mSelected == true);
+			this.mSelected = false;
 		}
 		
 		public boolean getSelected()
 		{
-			return this.selected;
+			return this.mSelected;
+		}
+
+		public void setTile(BoardTile tile) {
+			this.mBoardTile = tile;
 		}
 	}
 	
-	private class BoardTile {
+	private abstract class BoardTile {
 		private double x;
 		private double y;
 		private double radius;
@@ -293,25 +303,141 @@ public class BoardView extends View implements OnTouchListener {
 			this.radius = r;
 		}
 		
-		public boolean pointInStep(double x, double y) {
+		public boolean pointInside(double x, double y) {
 			double xDist = this.x - x;
 			double yDist = this.y - y;
 			return Math.sqrt(xDist * xDist + yDist * yDist) < this.radius;
 		}
+		
+		public Step findNextStep(int value) {
+			return null;
+		}
+
+		public abstract Piece selectPiece(int color);
+		public abstract Piece removeSelectedPiece(int color);
+		public abstract void deselect();
+		public abstract boolean free();
 	}
 	
 	private class Nest extends BoardTile {
+		private Piece mPieces[] = new Piece[N_PIECES_PER_PLAYER];
+		private int mNPieces;
 		
 		public Nest(double x, double y, double radius, int color) 
 		{
 			super(x, y, radius, color);
+			
+			initNest(color);
+		}
+
+		private void initNest(int color)
+		{
+			int piece;
+			for (piece = 0; piece < mPieces.length; piece++)
+			{
+				mPieces[piece] = new Piece(this, color);
+				mNPieces++;
+			}
+		}
+		
+		public boolean queryColor(int color)
+		{
+			return ((super.color == color) && (mNPieces > 0));
+		}
+
+		@Override
+		public Piece selectPiece(int color) {
+			Piece piece;
+			int pieceIdx;
+			for (pieceIdx = 0; pieceIdx < this.mNPieces; pieceIdx++)
+			{
+				piece = mPieces[pieceIdx];
+				if (piece.getColor() == color) 
+				{
+					piece.select();
+					return piece;
+				}
+			}
+			return null;
+		}
+
+		@Override
+		public void deselect() {
+			Piece piece;
+			int pieceIdx;
+			for (pieceIdx = 0; pieceIdx < this.mNPieces; pieceIdx++)
+			{
+				piece = mPieces[pieceIdx];
+				if (piece.getSelected()) 
+				{
+					piece.deselect();
+					return;
+				}
+			}
+		}
+
+		@Override
+		public Piece removeSelectedPiece(int color) {
+			Piece piece;
+			int pieceIdx = 0;
+			while (pieceIdx < this.mNPieces &&
+					this.mPieces[pieceIdx].getColor() != color)
+			{
+				pieceIdx++;
+			}
+			if (pieceIdx >= mNPieces) {
+				return null;
+			} else {
+				piece = this.mPieces[pieceIdx];
+			}
+			while (pieceIdx < mNPieces - 1) 
+			{
+				this.mPieces[pieceIdx] = this.mPieces[++pieceIdx];
+			}
+			this.mPieces[pieceIdx] = null;
+			this.mNPieces--;
+			return piece;
+		}
+
+		@Override
+		public boolean free() {
+			return mNPieces < N_PIECES_PER_PLAYER;
+		}
+		
+		public void drawPieces(Canvas canvas) {
+			Paint paint;
+			Piece piece;
+			int pieceIdx;
+			double x;
+			double y;
+			double edgeRadius;
+			double centerRadius;
+			double selectMultiplier;
+			
+			if (this.mNPieces > 0)
+			{
+				paint = new Paint();
+				for (pieceIdx = 0; pieceIdx < mNPieces; pieceIdx++)
+				{
+					piece = this.mPieces[pieceIdx];
+					selectMultiplier = piece.getSelected() ? 1.5 : 1;
+					x = super.x + super.radius * 0.4 * (-1 + 2 * Math.floor(pieceIdx / 2));
+					y = super.y + super.radius * 0.4 * (-1 + 2 * (pieceIdx % 2));
+					edgeRadius = mPieceRadius * selectMultiplier;
+					centerRadius = edgeRadius - EDGE_WIDTH * mPieceRadius;
+					paint.setColor(Color.WHITE);
+					canvas.drawCircle((float)x, (float)y, (float)edgeRadius, paint);
+					paint.setColor(piece.getColor());
+					canvas.drawCircle((float)x, (float)y, (float)centerRadius, paint);
+				}
+			}
 		}
 	}
 	
 	private class Step extends BoardTile {
 		private int edgeColor;
-		private Piece pieces[] = new Piece[N_PIECES_PER_PLAYER];
-		private int nPieces;
+		private Piece mPiece;
+		private int mNPieces;
 		private boolean mNextStep;
 		
 		public Step(double x, double y, double radius, int color)
@@ -328,52 +454,28 @@ public class BoardView extends View implements OnTouchListener {
 		
 		private void initializeStep(double x, double y, double radius, int color, int edgeColor)
 		{
-			int i;
 			this.edgeColor = edgeColor;
 			this.mNextStep = false;
-			for (i = 0; i < N_PIECES_PER_PLAYER; i++) pieces[i] = null;
+			this.mPiece = null;
+			this.mNPieces = 0;
 		}
 		
 		public void putPiece(Piece piece)
 		{
-			assert(nPieces < N_PIECES_PER_PLAYER);
-			this.pieces[this.nPieces++] = piece;
+			assert(mNPieces == 0);
+			this.mPiece = piece;
+			mNPieces = 1;
 		}
 		
-		public boolean removePiece(int color)
+		public void putPieces(Piece piece1, Piece piece2)
 		{
-			int pieceIdx = 0;
-			while (this.pieces[pieceIdx].getColor() != color) pieceIdx++;
-			if (pieceIdx >= nPieces) {
-				return false;
-			}
-			while (pieceIdx < nPieces) this.pieces[pieceIdx] = this.pieces[++pieceIdx];
-			this.pieces[pieceIdx] = null;
-			this.nPieces--;
-			return true;
-		}
-		
-		public Piece pickPiece(int color)
-		{
-			Piece piece;
-			int pieceIdx = 0;
-			while (pieceIdx < this.nPieces &&
-					this.pieces[pieceIdx].getColor() != color)
-			{
-				pieceIdx++;
-			}
-			if (pieceIdx >= nPieces) {
-				return null;
-			} else {
-				piece = this.pieces[pieceIdx];
-			}
-			while (pieceIdx < nPieces - 1) 
-			{
-				this.pieces[pieceIdx] = this.pieces[++pieceIdx];
-			}
-			this.pieces[pieceIdx] = null;
-			this.nPieces--;
-			return piece;
+			// This function assumes that the pieces are equal and 
+		    // stores only one of them.
+			assert(mNPieces == 0);
+			this.mPiece = piece1;
+			// Verify that the pieces are actually identical
+			assert(piece1 == piece2 || (piece1!=null && piece1.equals(piece2)));
+			this.mNPieces = 2;
 		}
 		
 		public void draw(Canvas canvas) {
@@ -390,8 +492,7 @@ public class BoardView extends View implements OnTouchListener {
 		}
 		
 		public void drawPieces(Canvas canvas) {
-			Paint paint;
-			Piece piece;
+			Paint paint = new Paint();
 			int pieceIdx;
 			double x;
 			double y;
@@ -399,63 +500,23 @@ public class BoardView extends View implements OnTouchListener {
 			double centerRadius;
 			double selectMultiplier;
 			
-			if (this.nPieces > 0)
+			for (pieceIdx = 0; pieceIdx < mNPieces; pieceIdx++)
 			{
-				paint = new Paint();
-				for (pieceIdx = 0; pieceIdx < nPieces; pieceIdx++)
-				{
-					piece = this.pieces[pieceIdx];
-					selectMultiplier = piece.getSelected() ? 1.5 : 1;
-					x = super.x + super.radius * 0.4 * (-1 + 2 * Math.floor(pieceIdx / 2));
-					y = super.y + super.radius * 0.4 * (-1 + 2 * (pieceIdx % 2));
-					edgeRadius = mPieceRadius * selectMultiplier;
-					centerRadius = edgeRadius - EDGE_WIDTH * mPieceRadius;
-					paint.setColor(Color.WHITE);
-					canvas.drawCircle((float)x, (float)y, (float)edgeRadius, paint);
-					paint.setColor(piece.getColor());
-					canvas.drawCircle((float)x, (float)y, (float)centerRadius, paint);
-				}
-			}
-		}
-
-		public boolean queryColor(int color) {
-			int pieceIdx;
-			for (pieceIdx = 0; pieceIdx < nPieces; pieceIdx++)
-			{
-				if (this.pieces[pieceIdx].getColor() == color)
-				{
-					return true;
-				}
-			}
-			return false;
-		}
-
-		public void selectColor(int color) {
-			int pieceIdx;
-			for (pieceIdx = 0; pieceIdx < nPieces; pieceIdx++)
-			{
-				if (this.pieces[pieceIdx].getColor() == color)
-				{
-					this.pieces[pieceIdx].select();
-					return;
-				}
-			}
-		}
-
-		public void deselect() {
-			int pieceIdx = 0;
-			for (pieceIdx = 0; pieceIdx < nPieces; pieceIdx++)
-			{
-				if (this.pieces[pieceIdx].getSelected())
-				{
-					this.pieces[pieceIdx].deselect();
-					return;
-				}
+				selectMultiplier = (mPiece.getSelected() && pieceIdx == 0) ? 1.5 : 1;
+				// Temporarily set to center first and put second completely off
+				x = super.x + super.radius * 0.4 * (0 + 2 * pieceIdx);
+				y = super.y + super.radius * 0.4 * (0 + 2 * pieceIdx);
+				edgeRadius = mPieceRadius * selectMultiplier;
+				centerRadius = edgeRadius - EDGE_WIDTH * mPieceRadius;
+				paint.setColor(Color.WHITE);
+				canvas.drawCircle((float)x, (float)y, (float)edgeRadius, paint);
+				paint.setColor(this.mPiece.getColor());
+				canvas.drawCircle((float)x, (float)y, (float)centerRadius, paint);
 			}
 		}
 
 		public boolean free() {
-			return this.nPieces < this.pieces.length;
+			return this.mNPieces == 0;
 		}
 
 		public void setNextStep() {
@@ -464,6 +525,45 @@ public class BoardView extends View implements OnTouchListener {
 
 		public void unsetNextStep() {
 			this.mNextStep = false;
+		}
+
+		@Override
+		public Piece selectPiece(int color) {
+			if (this.mNPieces > 0 && this.mPiece.getColor() == color)
+			{
+				this.mPiece.select();
+				return this.mPiece;
+			}
+			else return null;
+		}
+		
+		@Override
+		public void deselect() {
+			assert(this.mNPieces > 0);
+			this.mPiece.deselect();
+		}
+
+		@Override
+		public Piece removeSelectedPiece(int color) {
+			Piece piece;
+			assert(this.mPiece.getColor() == color);
+			switch (mNPieces)
+			{
+			case 2:
+				this.mPiece.deselect();
+				this.mNPieces = 1;
+				return new Piece(this.mPiece);
+			case 1:
+				piece = this.mPiece;
+				this.mPiece.deselect();
+				this.mNPieces = 0;
+				this.mPiece = null;
+				return piece;
+			case 0:
+				return null;
+			}
+			assert(false);
+			return null;
 		}
 	}
 	
@@ -579,7 +679,7 @@ public class BoardView extends View implements OnTouchListener {
 			return mRect.contains(x, y);
 		}
 
-		public void touched() {
+		public void clicked() {
 			this.rollDice();
 		}
 
@@ -588,59 +688,85 @@ public class BoardView extends View implements OnTouchListener {
 		}
 	}
 	
-	private void registerClick(int stepIdx)
+	private void registerClick(Nest nest)
 	{
 		Piece piece;
-		Step newStep = mSteps[stepIdx];
-		Step oldStep;
-		int nextStep = Integer.MAX_VALUE;
-		//Toast message = Toast.makeText(getContext(), "stepIdx: " + stepIdx, Toast.LENGTH_SHORT);
-		//message.show();
-		switch(this.mState) {
+		Step nextStep = null;
+		
+		piece = nest.selectPiece(this.boardViewColor);
+		if (piece == null) return;
+
+		switch (this.mState) 
+		{
 		case NONE_SELECTED:
-			if (newStep.queryColor(this.mColor))
-			{
-				newStep.selectColor(this.mColor);
-				this.mSelectedPieceStep = stepIdx;
+				this.mSelectedTile = nest;
 				this.mState = State.ONE_SELECTED;
-				nextStep = this.findNextStep();
-				//Toast message2 = Toast.makeText(getContext(), "State " + this.state + ", Selected " + step, Toast.LENGTH_SHORT);
-				//message2.show();
+				nextStep = nest.findNextStep(this.mDice.getValue());
+			break;
+		case ONE_SELECTED:
+				this.mSelectedTile.deselect();
+				nest.selectPiece(this.boardViewColor);
+				this.mSelectedTile = nest;
+				nextStep = nest.findNextStep(this.mDice.getValue());
+			break;
+		case BOTH_SELECTED:
+			assert(false);
+		}
+
+		if (nextStep != null)
+		{
+			this.mNextStepGlobal.unsetNextStep();
+			this.mNextStepGlobal = nextStep;
+			this.mNextStepGlobal.setNextStep();
+		}
+	}
+	
+	private void registerClick(Step newStep)
+	{
+		Piece piece;
+		Step nextStep = null;
+
+		piece = newStep.selectPiece(this.boardViewColor);
+		
+		switch (this.mState) 
+		{
+		case NONE_SELECTED:
+			if (piece != null)
+			{
+				this.mSelectedTile = newStep;
+				this.mState = State.ONE_SELECTED;
+				nextStep = newStep.findNextStep(this.mDice.getValue());
 			}
 			break;
 		case ONE_SELECTED:
-			oldStep = mSteps[mSelectedPieceStep];
-			if (newStep.queryColor(this.mColor))
+			if (piece != null)
 			{
-				oldStep.deselect();
-				newStep.selectColor(this.mColor);
-				mSelectedPieceStep = stepIdx;
-				nextStep = this.findNextStep();
+				this.mSelectedTile.deselect();
+				newStep.selectPiece(this.boardViewColor);
+				this.mSelectedTile = newStep;
+				nextStep = newStep.findNextStep(this.mDice.getValue());
 			}
 			else if (newStep.free())
 			{
-				oldStep.deselect();
-				piece = oldStep.pickPiece(this.mColor);
+				piece = this.mSelectedTile.removeSelectedPiece(this.boardViewColor);
 				newStep.putPiece(piece);
-				piece.step = stepIdx;
-				//Toast message2 = Toast.makeText(getContext(), "Moving piece from " + selectedPieceStep + " to " + step, Toast.LENGTH_SHORT);
-				this.mSelectedPieceStep = ILLEGAL_STEP;
+				piece.setTile(newStep);
+				piece.deselect();
+				this.mSelectedTile = null;
 				this.mState = State.NONE_SELECTED;
 				this.switchPlayer();
-				//message2.show();
 			}
 			break;
 		case BOTH_SELECTED:
 			assert(false);
 		}
 
-		if (nextStep != Integer.MAX_VALUE)
+		if (nextStep != null)
 		{
-			mSteps[mNextStep].unsetNextStep();
-			this.mNextStep = nextStep;
-			mSteps[mNextStep].setNextStep();
+			this.mNextStepGlobal.unsetNextStep();
+			this.mNextStepGlobal = nextStep;
+			this.mNextStepGlobal.setNextStep();
 		}
-		//this.invalidate();
 	}
 
 	private int findNextStep() {
@@ -677,6 +803,7 @@ public class BoardView extends View implements OnTouchListener {
 				"\nnestBase: " + nestBase +
 				"\nnest: " + nest, Toast.LENGTH_SHORT);
 		toast.show();
+		/*
 		if (mSelectedPieceStep == nest)
 		{
 			nextStep = roll + offset - 1;
@@ -753,6 +880,7 @@ public class BoardView extends View implements OnTouchListener {
 				"\nnestBase: " + nestBase +
 				"\ncurrentStep: " + currentStep, Toast.LENGTH_SHORT);
 		toast.show();
+		*/
 		return nextStep;
 	}
 
@@ -761,21 +889,19 @@ public class BoardView extends View implements OnTouchListener {
 		switch (mPlayer) {
 		case BLUE:
 			mPlayer = Player.GREEN;
-			mColor = Color.GREEN;
+			boardViewColor = Color.GREEN;
 			break;
 		case GREEN:
-			//mPlayer = Player.GREEN;
-			//mColor = Color.GREEN;
 			mPlayer = Player.RED;
-			mColor = Color.RED;
+			boardViewColor = Color.RED;
 			break;
 		case RED:
 			mPlayer = Player.YELLOW;
-			mColor = Color.YELLOW;
+			boardViewColor = Color.YELLOW;
 			break;
 		case YELLOW:
 			mPlayer = Player.BLUE;
-			mColor = Color.BLUE;
+			boardViewColor = Color.BLUE;
 			break;
 		}
 		mDice.setPlayer(mPlayer);
@@ -784,37 +910,70 @@ public class BoardView extends View implements OnTouchListener {
 	@Override
 	public boolean onTouch(View view, MotionEvent event)
 	{
-		int step = 0;
 		float x;
 		float y;
 		boolean found = false;
+		Step step;
+		Nest nest;
 		int a = event.getAction();
 		
 		if (a == MotionEvent.ACTION_DOWN)
 		{
 			x = event.getX();
 			y = event.getY();
-			found = mSteps[step].pointInStep(x, y);
-			while (!found && step < mSteps.length - 1)
-			{
-				found = mSteps[++step].pointInStep(x, y);
-			}
-			if (found)
+			step = findStep(x, y);
+			if (step != null)
 			{
 				registerClick(step);
+				found = true;
 			}
-			
-			if (mDice.pointInDice(x,y))
+			else 
 			{
-				mDice.touched();
+				nest = findNest(x, y);
+				if (nest != null)
+				{
+					registerClick(nest);
+					found = true;
+				}
+				else if (mDice.pointInDice(x,y))
+				{
+					mDice.clicked();
+					found = true;
+				}
 			}
 			
 			this.invalidate();
-			//Toast message = Toast.makeText(getContext(), "Wohoo event.getAction(): " + a + "\nevent.getX(): " + event.getX() + "\nevent.getY(): " + event.getX() + "\nstep: "+ step, Toast.LENGTH_SHORT);       
-			//message.show();
 		}
 		
 		return found;
+	}
+	
+	private Step findStep(float x, float y)
+	{
+		int step;
+		
+		for (step = 0; step < mSteps.length; step++)
+		{
+			if (mSteps[step].pointInside(x, y))
+			{
+				return mSteps[step];
+			}
+		}
+		return null;
+	}
+	
+	private Nest findNest(float x, float y)
+	{
+		int nest;
+		
+		for (nest = 0; nest < mNests.length; nest++)
+		{
+			if (mNests[nest].pointInside(x, y))
+			{
+				return mNests[nest];
+			}
+		}
+		return null;
 	}
 }
 
