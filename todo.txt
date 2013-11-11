@@ -1,1 +1,6 @@
+Implement super class BoardTile and split Step
 Implement own class for nests
+Implement own class for goal
+Implement player class
+Implement linked list of board tiles
+Use float instead of double

@@ -32,6 +32,7 @@ public class BoardView extends View implements OnTouchListener {
 	}
 	
 	private final int N_STEPS = 61;
+	private final int N_NESTS = 4;
 	private final int ILLEGAL_STEP = Integer.MAX_VALUE;
 	private final int N_PIECES = 16;
 	private final int N_STEPS_PER_SIDE = 11;
@@ -56,6 +57,7 @@ public class BoardView extends View implements OnTouchListener {
 	private Bitmap  mBitmap;
 	
 	private Step[] mSteps = new Step[N_STEPS];
+	private Nest[] mNests = new Nest[N_NESTS];
 	private Piece[] mPieces = new Piece[N_PIECES];
 	
 	public BoardView(Context context) {
@@ -261,11 +263,52 @@ public class BoardView extends View implements OnTouchListener {
 		}
 	}
 	
-	private class Step {
+	private class BoardTile {
 		private double x;
 		private double y;
 		private double radius;
 		private int color;
+		
+		public BoardTile(double x, double y, double radius, int color)
+		{
+			initBoardTile(x, y, radius, color);
+		}
+		
+		private void initBoardTile(double x, double y, double radius, int color)
+		{
+			this.x = x;
+			this.y = y;
+			this.radius = radius;
+			this.color = color;
+		}
+		
+		public void draw(Canvas canvas) {
+			Paint paint = new Paint();
+			paint.setColor(color);
+			canvas.drawCircle((float)this.x, (float)this.y, (float)this.radius, paint);
+		}
+		
+		public void setRadius(double r)
+		{
+			this.radius = r;
+		}
+		
+		public boolean pointInStep(double x, double y) {
+			double xDist = this.x - x;
+			double yDist = this.y - y;
+			return Math.sqrt(xDist * xDist + yDist * yDist) < this.radius;
+		}
+	}
+	
+	private class Nest extends BoardTile {
+		
+		public Nest(double x, double y, double radius, int color) 
+		{
+			super(x, y, radius, color);
+		}
+	}
+	
+	private class Step extends BoardTile {
 		private int edgeColor;
 		private Piece pieces[] = new Piece[N_PIECES_PER_PLAYER];
 		private int nPieces;
@@ -273,21 +316,19 @@ public class BoardView extends View implements OnTouchListener {
 		
 		public Step(double x, double y, double radius, int color)
 		{
+			super(x, y, radius, color);
 			initializeStep(x, y, radius, color, color);
 		}
 		
 		public Step(double x, double y, double radius, int color, int edgeColor)
 		{
+			super(x, y, radius, color);
 			initializeStep(x, y, radius, color, edgeColor);
 		}
 		
 		private void initializeStep(double x, double y, double radius, int color, int edgeColor)
 		{
 			int i;
-			this.x = x;
-			this.y = y;
-			this.radius = radius;
-			this.color = color;
 			this.edgeColor = edgeColor;
 			this.mNextStep = false;
 			for (i = 0; i < N_PIECES_PER_PLAYER; i++) pieces[i] = null;
@@ -340,12 +381,12 @@ public class BoardView extends View implements OnTouchListener {
 			if (this.mNextStep)
 			{
 				paint.setColor(Color.WHITE);
-				canvas.drawCircle((float)this.x, (float)this.y, (float)(this.radius * 1.1), paint);
+				canvas.drawCircle((float)super.x, (float)super.y, (float)(super.radius * 1.1), paint);
 			}
 			paint.setColor(edgeColor);
-			canvas.drawCircle((float)this.x, (float)this.y, (float)this.radius, paint);
-			paint.setColor(color);
-			canvas.drawCircle((float)this.x, (float)this.y, (float)(this.radius * 0.8), paint);
+			canvas.drawCircle((float)super.x, (float)super.y, (float)super.radius, paint);
+			paint.setColor(super.color);
+			canvas.drawCircle((float)super.x, (float)super.y, (float)(super.radius * 0.8), paint);
 		}
 		
 		public void drawPieces(Canvas canvas) {
@@ -365,8 +406,8 @@ public class BoardView extends View implements OnTouchListener {
 				{
 					piece = this.pieces[pieceIdx];
 					selectMultiplier = piece.getSelected() ? 1.5 : 1;
-					x = this.x + this.radius * 0.4 * (-1 + 2 * Math.floor(pieceIdx / 2));
-					y = this.y + this.radius * 0.4 * (-1 + 2 * (pieceIdx % 2));
+					x = super.x + super.radius * 0.4 * (-1 + 2 * Math.floor(pieceIdx / 2));
+					y = super.y + super.radius * 0.4 * (-1 + 2 * (pieceIdx % 2));
 					edgeRadius = mPieceRadius * selectMultiplier;
 					centerRadius = edgeRadius - EDGE_WIDTH * mPieceRadius;
 					paint.setColor(Color.WHITE);
@@ -375,12 +416,6 @@ public class BoardView extends View implements OnTouchListener {
 					canvas.drawCircle((float)x, (float)y, (float)centerRadius, paint);
 				}
 			}
-		}
-
-		public boolean pointInStep(double x, double y) {
-			double xDist = this.x - x;
-			double yDist = this.y - y;
-			return Math.sqrt(xDist * xDist + yDist * yDist) < this.radius;
 		}
 
 		public boolean queryColor(int color) {
