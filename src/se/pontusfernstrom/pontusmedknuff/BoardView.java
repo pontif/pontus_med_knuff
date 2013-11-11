@@ -457,7 +457,7 @@ public class BoardView extends View implements OnTouchListener {
 		
 		public void rollDice()
 		{
-			mValue = mRand.nextInt(5) + 1;
+			mValue = mRand.nextInt(6) + 1;
 		}
 		
 		public void setPlayer(Player player)
@@ -611,6 +611,7 @@ public class BoardView extends View implements OnTouchListener {
 	private int findNextStep() {
 		int offset = 0;
 		int nestBase = 0;
+		int nest = 0;
 		int currentStep;
 		int nextStep = 0;
 		int roll = mDice.getValue();
@@ -618,40 +619,81 @@ public class BoardView extends View implements OnTouchListener {
 		case BLUE:
 			offset = 1;
 			nestBase = 40;
-			if (mSelectedPieceStep == 57)
-			{
-				nextStep = roll + offset - 1;
-				return nextStep;
-			}
+			nest = 57;
 			break;
 		case GREEN:
 			offset = 11;
 			nestBase = 44;
-			if (mSelectedPieceStep == 58)
-			{
-				nextStep = roll + offset - 1;
-				return nextStep;
-			}
+			nest = 58;
 			break;
 		case RED:
 			offset = 21;
 			nestBase = 48;
-			if (mSelectedPieceStep == 59)
-			{
-				nextStep = roll + offset - 1;
-				return nextStep;
-			}
+			nest = 59;
 			break;
 		case YELLOW:
 			offset = 31;
 			nestBase = 52;
-			if (mSelectedPieceStep == 60)
-			{
-				nextStep = roll + offset - 1;
-				return nextStep;
-			}
+			nest = 60;
 			break;
 		}
+		Toast toast = Toast.makeText(getContext(), 
+				"offset: " + offset +
+				"\nnestBase: " + nestBase +
+				"\nnest: " + nest, Toast.LENGTH_SHORT);
+		toast.show();
+		if (mSelectedPieceStep == nest)
+		{
+			nextStep = roll + offset - 1;
+			return nextStep;
+		} 
+		else if (mSelectedPieceStep == offset - 1)
+		{
+			if (roll == 5)
+			{
+				nextStep = 56;
+				return nextStep;
+			}
+			else if (roll == 6)
+			{
+				nextStep = nestBase + 3;
+				return nextStep;
+			}
+			else
+			{
+				nextStep = nestBase - 1 + roll;
+				return nextStep;
+			}
+		}
+		else if ((mSelectedPieceStep == offset - 2 &&
+				 roll == 6) ||
+				 (offset == 0 &&
+				 mSelectedPieceStep == 39))
+		{
+			nextStep = 56;
+			return nextStep;
+		}
+		else if (mSelectedPieceStep >= nestBase &&
+				 mSelectedPieceStep < nestBase + 4)
+		{
+			if (mSelectedPieceStep == nestBase + 3 &&
+				roll == 6)
+			{
+				nextStep = offset;
+				return nextStep;
+			}
+			else if (mSelectedPieceStep + roll == nestBase + 4)
+			{
+				nextStep = 56;
+				return nextStep;
+			}
+			else
+			{
+				nextStep = nestBase + 4 - Math.abs(mSelectedPieceStep + roll - (nestBase + 4));
+				return nextStep;
+			}
+		}
+				
 		currentStep = (mSelectedPieceStep - offset) % 40;
 		if (currentStep < 0)
 		{
@@ -671,7 +713,7 @@ public class BoardView extends View implements OnTouchListener {
 			nextStep = nestBase + (currentStep + roll) - 40;
 		}
 		
-		Toast toast = Toast.makeText(getContext(), 
+		toast = Toast.makeText(getContext(), 
 				"nextStep: " + nextStep +
 				"\nnestBase: " + nestBase +
 				"\ncurrentStep: " + currentStep, Toast.LENGTH_SHORT);
