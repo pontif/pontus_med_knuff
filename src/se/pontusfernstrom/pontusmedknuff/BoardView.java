@@ -339,11 +339,6 @@ public class BoardView extends View implements OnTouchListener {
 				mNPieces++;
 			}
 		}
-		
-		public boolean queryColor(int color)
-		{
-			return ((super.color == color) && (mNPieces > 0));
-		}
 
 		@Override
 		public Piece selectPiece(int color) {
