@@ -1,11 +1,17 @@
-X Implement super class BoardTile and split Step
+Y Implement super class BoardTile and split Step
+Y Implement own class for nests
+Y Strip down class Step to only support 1 - 2 pieces of the same color. 
+N  -- Increase piece size appropriately
 
-Implement own class for nests
-Strip down class Step to only support 1 - 2 pieces of the same color. 
-  -- Increase piece size appropriately
-Swap mSelectedTile for mSelectedPiece?
+Implement move prediction
+-- Bug if selected tile is not according to dice and the latter is occupied
+-- Follow up-bug: Can select multiple pieces after above issue is manifested
+
+Implement linked list of board tiles
+  -- Reimplement move prediction
+Enforce moves according to dice
 Implement own class for goal
 Implement player class
   -- Move mNextStepGlobal into player class?
-Implement linked list of board tiles
+Swap mSelectedTile for mSelectedPiece?
 Use float instead of double
