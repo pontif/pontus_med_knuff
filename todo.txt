@@ -4,11 +4,14 @@ Y Strip down class Step to only support 1 - 2 pieces of the same color.
 N  -- Increase piece size appropriately
 
 Implement move prediction
+-- Handle entrances and end point
+-- Reimplement move prediction
 -- Bug if selected tile is not according to dice and the latter is occupied
 -- Follow up-bug: Can select multiple pieces after above issue is manifested
+-- Bug: Can move to mSteps[offset] if dice not rolled
 
 Implement linked list of board tiles
-  -- Reimplement move prediction
+  -- With this the Pieces doesn't have to access mSteps etc.
 Enforce moves according to dice
 Implement own class for goal
 Implement player class

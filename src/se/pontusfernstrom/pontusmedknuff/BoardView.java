@@ -278,7 +278,7 @@ public class BoardView extends View implements OnTouchListener {
 			this.mBoardTile = tile;
 		}
 
-		public void move(int value) throws Exception
+		public void move(int diceValue) throws Exception
 		{
 			Step step;
 			
@@ -295,10 +295,28 @@ public class BoardView extends View implements OnTouchListener {
 					this.mPosition += 10;
 				}
 			}
-			this.mPosition += value;
+			this.mPosition += diceValue;
 			step = mSteps[this.mPosition];
 			step.putPiece(this);
 			this.setTile(step);
+		}
+
+		public Step getNextStep(int diceValue) {
+			int newPosition = this.mPosition;
+			if (newPosition == 0)
+			{
+				switch (this.mColor)
+				{
+				case Color.YELLOW:
+					newPosition += 10;
+				case Color.RED:
+					newPosition += 10;
+				case Color.GREEN:
+					newPosition += 10;
+				}
+			}
+			newPosition += diceValue;
+			return mSteps[newPosition];
 		}
 	}
 	
@@ -826,14 +844,14 @@ public class BoardView extends View implements OnTouchListener {
 			else if (newStep.free())
 			{
 				piece = this.mSelectedTile.selectPiece(this.boardViewColor);
-				piece.move(mDice.getValue());
-				/*piece = this.mSelectedTile.removeSelectedPiece(this.boardViewColor);
-				newStep.putPiece(piece);
-				piece.setTile(newStep);*/
-				piece.deselect();
-				this.mSelectedTile = null;
-				this.mState = State.NONE_SELECTED;
-				this.switchPlayer();
+				if (piece.getNextStep(mDice.getValue()).equals(newStep))
+				{
+					piece.move(mDice.getValue());
+					piece.deselect();
+					this.mSelectedTile = null;
+					this.mState = State.NONE_SELECTED;
+					this.switchPlayer();
+				}
 			}
 			break;
 		case BOTH_SELECTED:
