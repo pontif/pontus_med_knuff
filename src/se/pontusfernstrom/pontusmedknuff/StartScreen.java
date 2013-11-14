@@ -18,9 +18,6 @@ public class StartScreen extends Activity {
 
         final View contentView = findViewById(R.id.fullscreen_content);
         
-
-        
-
         // Set up the user interaction to manually show or hide the system UI.
         contentView.setOnClickListener(new View.OnClickListener() {
             @Override

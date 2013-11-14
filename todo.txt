@@ -2,19 +2,23 @@ Y Implement super class BoardTile and split Step
 Y Implement own class for nests
 Y Strip down class Step to only support 1 - 2 pieces of the same color. 
 N  -- Increase piece size appropriately
+Y Enforce moves according to dice
+Y Implement move prediction
+Y -- Handle entrances
+Y -- Bug if selected tile is not according to dice and the latter is occupied
+N -- Follow up-bug: Can select multiple pieces after above issue is manifested
+Y Handle end point
 
-Implement move prediction
--- Handle entrances and end point
--- Reimplement move prediction
--- Bug if selected tile is not according to dice and the latter is occupied
--- Follow up-bug: Can select multiple pieces after above issue is manifested
--- Bug: Can move to mSteps[offset] if dice not rolled
-
+Implement player class
+Implement leaving nest on 1 and 6 only
+Implement reroll at 6
+Implement AI
 Implement linked list of board tiles
   -- With this the Pieces doesn't have to access mSteps etc.
-Enforce moves according to dice
+  -- Bouncing will be somewhat tricky
 Implement own class for goal
-Implement player class
   -- Move mNextStepGlobal into player class?
 Swap mSelectedTile for mSelectedPiece?
 Use float instead of double
+Implement state machine
+-- Bug: Can move to mSteps[offset] if dice not rolled

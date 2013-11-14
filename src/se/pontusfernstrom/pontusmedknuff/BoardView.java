@@ -285,8 +285,14 @@ public class BoardView extends View implements OnTouchListener {
 			step = getNextStep(diceValue);
 			this.mPosition += diceValue;
 			this.mBoardTile.remove(this);
-			step.putPiece(this);
-			this.setTile(step);
+			if (step.equals(mSteps[56])) {
+				this.setTile(null);
+			}
+			else
+			{
+				step.putPiece(this);
+				this.setTile(step);
+			}
 		}
 
 		public Step getNextStep(int diceValue) {
@@ -298,11 +304,16 @@ public class BoardView extends View implements OnTouchListener {
 				newIndex = (newIndex + offset(this.mColor)) % 40;
 				return mSteps[newIndex];
 			}
-			else //if (this.mPosition < 45)
+			else if (newIndex < 45)
 			{
 				newIndex = newIndex + entranceOffset(this.mColor) - 1;
 				return mSteps[newIndex];
 			}
+			else if (newIndex == 45)
+			{
+				return mSteps[56];
+			}
+			else return mSteps[this.mPosition];
 		}
 		
 		private int offset(int color)
@@ -344,6 +355,7 @@ public class BoardView extends View implements OnTouchListener {
 			this.mBoardTile.remove(this);
 			nest.putPiece(this);
 			this.setTile(nest);
+			this.deselect();
 		}
 		
 		private Nest getNest() throws Exception
@@ -659,7 +671,12 @@ public class BoardView extends View implements OnTouchListener {
 		}
 
 		public Piece selectAnyPiece(int boardViewColor) {
-			return this.mPiece;
+			if (this.mNPieces > 0)
+			{
+				this.mPiece.select();
+				return this.mPiece;
+			}
+			else return null;
 		}
 
 		@Override
@@ -848,9 +865,12 @@ public class BoardView extends View implements OnTouchListener {
 		switch (this.mState) 
 		{
 		case NONE_SELECTED:
+			if (piece != null && piece.getColor() == this.boardViewColor);
+			{
 				this.mSelectedTile = nest;
 				this.mState = State.ONE_SELECTED;
 				nextStep = piece.getNextStep(this.mDice.getValue());
+			}
 			break;
 		case ONE_SELECTED:
 				this.mSelectedTile.deselect();
@@ -876,12 +896,13 @@ public class BoardView extends View implements OnTouchListener {
 		Piece piece;
 		Step nextStep = null;
 
-		piece = newStep.selectAnyPiece(this.boardViewColor);
+		piece = newStep.selectPiece(this.boardViewColor);
 		
 		switch (this.mState) 
 		{
 		case NONE_SELECTED:
-			if (piece != null)
+			
+			if ((piece != null) && (piece.getColor() == this.boardViewColor))
 			{
 				this.mSelectedTile = newStep;
 				this.mState = State.ONE_SELECTED;
@@ -889,6 +910,7 @@ public class BoardView extends View implements OnTouchListener {
 			}
 			break;
 		case ONE_SELECTED:
+			
 			if (piece != null)
 			{
 				if (piece.getColor() == this.boardViewColor)
@@ -898,9 +920,26 @@ public class BoardView extends View implements OnTouchListener {
 					this.mSelectedTile = newStep;
 					nextStep = piece.getNextStep(mDice.getValue());//= newStep.findNextStep(this.mDice.getValue());
 				}
-				else
+			}
+			else if (newStep.free())
+			{
+				piece = this.mSelectedTile.selectPiece(this.boardViewColor);
+				if (piece != null && piece.getNextStep(mDice.getValue()).equals(newStep))
 				{
-					if (this.mSelectedTile.selectPiece(this.boardViewColor).getNextStep(mDice.getValue()).equals(newStep))
+					piece.move(mDice.getValue());
+					piece.deselect();
+					this.mSelectedTile = null;
+					this.mState = State.NONE_SELECTED;
+					this.switchPlayer();
+				}
+			}
+			else
+			{
+				piece = newStep.selectAnyPiece(this.boardViewColor);
+
+				if (piece != null)
+				{
+					if (this.mSelectedTile != null && this.mSelectedTile.selectPiece(this.boardViewColor).getNextStep(mDice.getValue()).equals(newStep))
 					{
 						this.mSelectedTile.deselect();
 						piece.moveToNest();
@@ -910,19 +949,12 @@ public class BoardView extends View implements OnTouchListener {
 						this.mSelectedTile = null;
 						this.mState = State.NONE_SELECTED;
 						this.switchPlayer();
+						nextStep = piece.getNextStep(mDice.getValue());//= newStep.findNextStep(this.mDice.getValue());
 					}
-				}
-			}
-			else if (newStep.free())
-			{
-				piece = this.mSelectedTile.selectPiece(this.boardViewColor);
-				if (piece.getNextStep(mDice.getValue()).equals(newStep))
-				{
-					piece.move(mDice.getValue());
-					piece.deselect();
-					this.mSelectedTile = null;
-					this.mState = State.NONE_SELECTED;
-					this.switchPlayer();
+					else
+					{
+						piece.deselect();
+					}
 				}
 			}
 			break;
