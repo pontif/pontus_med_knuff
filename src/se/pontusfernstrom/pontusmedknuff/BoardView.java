@@ -232,19 +232,24 @@ public class BoardView extends View implements OnTouchListener {
 	private class Piece {
 		private int mColor;
 		private boolean mSelected;
-		public BoardTile mBoardTile;
+		private BoardTile mBoardTile;
+		private int mPosition;
 		
-		public Piece(BoardTile boardTile, int color)
+		public Piece(BoardTile boardTile, int color, boolean selected, int position)
 		{
 			this.mColor = color;
 			this.mBoardTile = boardTile;
-			this.mSelected = false;
+			this.mSelected = selected;
+			this.mPosition = position;
+		}
+		
+		public Piece(BoardTile boardTile, int color)
+		{
+			this(boardTile, color, false, 0);
 		}
 		
 		public Piece(Piece piece) {
-			this.mColor = piece.mColor;
-			this.mSelected = piece.mSelected;
-			this.mBoardTile = piece.mBoardTile;
+			this(piece.mBoardTile, piece.mColor, piece.mSelected, piece.mPosition);
 		}
 
 		public int getColor()
@@ -257,9 +262,9 @@ public class BoardView extends View implements OnTouchListener {
 			this.mSelected = true;
 		}
 
-		public void deselect() 
+		public void deselect() throws Exception
 		{
-			assert(this.mSelected == true);
+			if(this.mSelected == false) throw new Exception("Piece not selected, can't deselect");
 			this.mSelected = false;
 		}
 		
@@ -268,8 +273,94 @@ public class BoardView extends View implements OnTouchListener {
 			return this.mSelected;
 		}
 
-		public void setTile(BoardTile tile) {
+		public void setTile(BoardTile tile) 
+		{
 			this.mBoardTile = tile;
+		}
+
+		public void move(int diceValue) throws Exception
+		{
+			Step step;
+			
+			step = getNextStep(diceValue);
+			this.mPosition += diceValue;
+			this.mBoardTile.remove(this);
+			step.putPiece(this);
+			this.setTile(step);
+		}
+
+		public Step getNextStep(int diceValue) {
+			int newIndex = this.mPosition;
+			
+			newIndex += diceValue;
+			if (newIndex < 41)
+			{
+				newIndex = (newIndex + offset(this.mColor)) % 40;
+				return mSteps[newIndex];
+			}
+			else //if (this.mPosition < 45)
+			{
+				newIndex = newIndex + entranceOffset(this.mColor) - 1;
+				return mSteps[newIndex];
+			}
+		}
+		
+		private int offset(int color)
+		{
+			int offset = 0;
+			switch (this.mColor)
+			{
+			case Color.YELLOW:
+				offset += 10;
+			case Color.RED:
+				offset += 10;
+			case Color.GREEN:
+				offset += 10;
+			}
+			
+			return offset;
+		}
+		
+		private int entranceOffset(int color)
+		{
+			int offset = 0;
+			switch (this.mColor)
+			{
+			case Color.YELLOW:
+				offset += 4;
+			case Color.RED:
+				offset += 4;
+			case Color.GREEN:
+				offset += 4;
+			}
+			
+			return offset;
+		}
+
+		public void moveToNest() throws Exception
+		{
+			Nest nest = getNest();
+			this.mPosition = 0;
+			this.mBoardTile.remove(this);
+			nest.putPiece(this);
+			this.setTile(nest);
+		}
+		
+		private Nest getNest() throws Exception
+		{
+			switch (this.mColor)
+			{
+			case Color.BLUE:
+				return mNests[0];
+			case Color.GREEN:
+				return mNests[1];
+			case Color.RED:
+				return mNests[2];
+			case Color.YELLOW:
+				return mNests[3];
+			default:
+				throw new Exception("Colour desn't exist");
+			}
 		}
 	}
 	
@@ -283,7 +374,7 @@ public class BoardView extends View implements OnTouchListener {
 		{
 			initBoardTile(x, y, radius, color);
 		}
-		
+
 		private void initBoardTile(double x, double y, double radius, int color)
 		{
 			this.x = x;
@@ -314,8 +405,9 @@ public class BoardView extends View implements OnTouchListener {
 		}
 
 		public abstract Piece selectPiece(int color);
-		public abstract Piece removeSelectedPiece(int color);
-		public abstract void deselect();
+		public abstract Piece removeSelectedPiece(int color) throws Exception;
+		public abstract void remove(Piece piece) throws Exception;
+		public abstract void deselect() throws Exception;
 		public abstract boolean free();
 	}
 	
@@ -328,6 +420,12 @@ public class BoardView extends View implements OnTouchListener {
 			super(x, y, radius, color);
 			
 			initNest(color);
+		}
+
+		public void putPiece (Piece piece) throws Exception
+		{
+			if (!free()) throw new Exception("Step not free!");
+			this.mPieces[mNPieces++] = piece;
 		}
 
 		private void initNest(int color)
@@ -357,7 +455,8 @@ public class BoardView extends View implements OnTouchListener {
 		}
 
 		@Override
-		public void deselect() {
+		public void deselect() throws Exception
+		{
 			Piece piece;
 			int pieceIdx;
 			for (pieceIdx = 0; pieceIdx < this.mNPieces; pieceIdx++)
@@ -392,6 +491,24 @@ public class BoardView extends View implements OnTouchListener {
 			this.mPieces[pieceIdx] = null;
 			this.mNPieces--;
 			return piece;
+		}
+
+		@Override
+		public void remove(Piece piece) throws Exception 
+		{
+			int pieceIdx = 0;
+			while (!this.mPieces[pieceIdx].equals(piece) &&
+					pieceIdx < this.mNPieces)
+			{
+				pieceIdx++;
+			}
+			if(pieceIdx >= mNPieces) throw new Exception("Piece to remove not found");
+			while (pieceIdx < mNPieces - 1) 
+			{
+				this.mPieces[pieceIdx] = this.mPieces[++pieceIdx];
+			}
+			this.mPieces[pieceIdx] = null;
+			this.mNPieces--;
 		}
 
 		@Override
@@ -434,19 +551,19 @@ public class BoardView extends View implements OnTouchListener {
 		private Piece mPiece;
 		private int mNPieces;
 		private boolean mNextStep;
-		
+
 		public Step(double x, double y, double radius, int color)
 		{
 			super(x, y, radius, color);
 			initializeStep(x, y, radius, color, color);
 		}
-		
+
 		public Step(double x, double y, double radius, int color, int edgeColor)
 		{
 			super(x, y, radius, color);
 			initializeStep(x, y, radius, color, edgeColor);
 		}
-		
+
 		private void initializeStep(double x, double y, double radius, int color, int edgeColor)
 		{
 			this.edgeColor = edgeColor;
@@ -454,26 +571,30 @@ public class BoardView extends View implements OnTouchListener {
 			this.mPiece = null;
 			this.mNPieces = 0;
 		}
-		
-		public void putPiece(Piece piece)
+
+		public void putPiece (Piece piece) throws Exception
 		{
-			assert(mNPieces == 0);
+			if (mNPieces != 0) throw new Exception("Step not free!");
 			this.mPiece = piece;
-			mNPieces = 1;
+			this.mNPieces = 1;
 		}
-		
-		public void putPieces(Piece piece1, Piece piece2)
+
+		public void putPieces(Piece piece1, Piece piece2) throws Exception
 		{
 			// This function assumes that the pieces are equal and 
-		    // stores only one of them.
-			assert(mNPieces == 0);
+			// stores only one of them.
+			if (mNPieces == 0) throw new Exception("Step not free!");
 			this.mPiece = piece1;
 			// Verify that the pieces are actually identical
-			assert(piece1 == piece2 || (piece1!=null && piece1.equals(piece2)));
+			if (!(piece1 == piece2 || (piece1!=null && piece1.equals(piece2))))
+			{
+				throw new Exception("Pieces not equal!");
+			}
 			this.mNPieces = 2;
 		}
-		
-		public void draw(Canvas canvas) {
+
+		public void draw(Canvas canvas) 
+		{
 			Paint paint = new Paint();
 			if (this.mNextStep)
 			{
@@ -485,8 +606,9 @@ public class BoardView extends View implements OnTouchListener {
 			paint.setColor(super.color);
 			canvas.drawCircle((float)super.x, (float)super.y, (float)(super.radius * 0.8), paint);
 		}
-		
-		public void drawPieces(Canvas canvas) {
+
+		public void drawPieces(Canvas canvas) 
+		{
 			Paint paint = new Paint();
 			int pieceIdx;
 			double x;
@@ -494,7 +616,7 @@ public class BoardView extends View implements OnTouchListener {
 			double edgeRadius;
 			double centerRadius;
 			double selectMultiplier;
-			
+
 			for (pieceIdx = 0; pieceIdx < mNPieces; pieceIdx++)
 			{
 				selectMultiplier = (mPiece.getSelected() && pieceIdx == 0) ? 1.5 : 1;
@@ -510,20 +632,24 @@ public class BoardView extends View implements OnTouchListener {
 			}
 		}
 
-		public boolean free() {
+		public boolean free() 
+		{
 			return this.mNPieces == 0;
 		}
 
-		public void setNextStep() {
+		public void setNextStep() 
+		{
 			this.mNextStep = true;
 		}
 
-		public void unsetNextStep() {
+		public void unsetNextStep() 
+		{
 			this.mNextStep = false;
 		}
 
 		@Override
-		public Piece selectPiece(int color) {
+		public Piece selectPiece(int color) 
+		{
 			if (this.mNPieces > 0 && this.mPiece.getColor() == color)
 			{
 				this.mPiece.select();
@@ -531,17 +657,23 @@ public class BoardView extends View implements OnTouchListener {
 			}
 			else return null;
 		}
-		
+
+		public Piece selectAnyPiece(int boardViewColor) {
+			return this.mPiece;
+		}
+
 		@Override
-		public void deselect() {
-			assert(this.mNPieces > 0);
+		public void deselect() throws Exception
+		{
+			if(this.mNPieces == 0) throw new Exception("No piece to deselect!");
 			this.mPiece.deselect();
 		}
 
 		@Override
-		public Piece removeSelectedPiece(int color) {
+		public Piece removeSelectedPiece(int color) throws Exception
+		{
 			Piece piece;
-			assert(this.mPiece.getColor() == color);
+			if(this.mPiece.getColor() != color) throw new Exception("Color mismatch between Piece and Step");
 			switch (mNPieces)
 			{
 			case 2:
@@ -554,11 +686,29 @@ public class BoardView extends View implements OnTouchListener {
 				this.mNPieces = 0;
 				this.mPiece = null;
 				return piece;
-			case 0:
-				return null;
+			default:
+				throw new Exception("Neither 1 nor 2 Pieces on Step");				
 			}
-			assert(false);
-			return null;
+		}
+
+		@Override
+		public void remove(Piece piece) throws Exception 
+		{
+			if(!this.mPiece.equals(piece)) throw new Exception("Piece to remove not the same as piece on Step");
+			switch (mNPieces)
+			{
+			case 2:
+				//this.mPiece.deselect();
+				this.mNPieces = 1;
+				break;
+			case 1:
+				//this.mPiece.deselect();
+				this.mNPieces = 0;
+				this.mPiece = null;
+				break;
+			default:
+				throw new Exception("Neither 1 nor 2 Pieces on Step");
+			}
 		}
 	}
 	
@@ -566,13 +716,14 @@ public class BoardView extends View implements OnTouchListener {
 		int mValue;
 		Random mRand;
 		RectF mRect;
-		
+
 		public Dice()
 		{
 			initDice();
 		}
-		
-		public void reset() {
+
+		public void reset() 
+		{
 			setPlayer(mPlayer);
 			mValue = 0;
 		}
@@ -584,16 +735,16 @@ public class BoardView extends View implements OnTouchListener {
 			mRand = new Random();
 			this.rollDice();
 		}
-		
+
 		public void rollDice()
 		{
 			mValue = mRand.nextInt(6) + 1;
 		}
-		
+
 		public void setPlayer(Player player)
 		{
 			mValue = 0;
-			
+
 			switch (player) {
 			case BLUE:
 				mRect.set((float)(10.5 * mStepBox), (float)(0.5 * mStepBox), (float)(11.5 * mStepBox), (float)(1.5 * mStepBox));
@@ -618,10 +769,10 @@ public class BoardView extends View implements OnTouchListener {
 			paint.setColor(Color.WHITE);
 			float rx = (float)(mStepBox * 0.2);
 			float ry = (float)(mStepBox * 0.2);
-			
+
 			canvas.drawRoundRect(mRect, rx, ry, paint);
 			paint.setColor(Color.BLACK);
-			
+
 			switch (mValue) {
 			case 1:
 				canvas.drawCircle(mRect.centerX(), mRect.centerY(), rx / 2, paint);
@@ -660,30 +811,33 @@ public class BoardView extends View implements OnTouchListener {
 				break;
 			}
 		}
-		
-/*		public class Player {
+
+		/*		public class Player {
 			int mColor;
 			public Player() {
 				mColor = Color.BLUE;
 			}
-			
+
 			switch
 		}*/
 
-		public boolean pointInDice(float x, float y) {
+		public boolean pointInDice(float x, float y) 
+		{
 			return mRect.contains(x, y);
 		}
 
-		public void clicked() {
+		public void clicked() 
+		{
 			this.rollDice();
 		}
 
-		public int getValue() {
+		public int getValue() 
+		{
 			return mValue;
 		}
 	}
 	
-	private void registerClick(Nest nest)
+	private void registerClick(Nest nest) throws Exception
 	{
 		Piece piece;
 		Step nextStep = null;
@@ -696,32 +850,33 @@ public class BoardView extends View implements OnTouchListener {
 		case NONE_SELECTED:
 				this.mSelectedTile = nest;
 				this.mState = State.ONE_SELECTED;
-				nextStep = nest.findNextStep(this.mDice.getValue());
+				nextStep = piece.getNextStep(this.mDice.getValue());
 			break;
 		case ONE_SELECTED:
 				this.mSelectedTile.deselect();
 				nest.selectPiece(this.boardViewColor);
 				this.mSelectedTile = nest;
-				nextStep = nest.findNextStep(this.mDice.getValue());
+				nextStep = piece.getNextStep(this.mDice.getValue());
 			break;
 		case BOTH_SELECTED:
-			assert(false);
+			throw new Exception("WTF, selected two Pieces? Give it a break!");
 		}
 
 		if (nextStep != null)
 		{
-			this.mNextStepGlobal.unsetNextStep();
+			if (this.mNextStepGlobal != null) 
+				this.mNextStepGlobal.unsetNextStep();
 			this.mNextStepGlobal = nextStep;
 			this.mNextStepGlobal.setNextStep();
 		}
 	}
 	
-	private void registerClick(Step newStep)
+	private void registerClick(Step newStep) throws Exception
 	{
 		Piece piece;
 		Step nextStep = null;
 
-		piece = newStep.selectPiece(this.boardViewColor);
+		piece = newStep.selectAnyPiece(this.boardViewColor);
 		
 		switch (this.mState) 
 		{
@@ -730,155 +885,59 @@ public class BoardView extends View implements OnTouchListener {
 			{
 				this.mSelectedTile = newStep;
 				this.mState = State.ONE_SELECTED;
-				nextStep = newStep.findNextStep(this.mDice.getValue());
+				nextStep = piece.getNextStep(mDice.getValue());// newStep.findNextStep(this.mDice.getValue());
 			}
 			break;
 		case ONE_SELECTED:
 			if (piece != null)
 			{
-				this.mSelectedTile.deselect();
-				newStep.selectPiece(this.boardViewColor);
-				this.mSelectedTile = newStep;
-				nextStep = newStep.findNextStep(this.mDice.getValue());
+				if (piece.getColor() == this.boardViewColor)
+				{
+					this.mSelectedTile.deselect();
+					newStep.selectPiece(this.boardViewColor);
+					this.mSelectedTile = newStep;
+					nextStep = piece.getNextStep(mDice.getValue());//= newStep.findNextStep(this.mDice.getValue());
+				}
+				else
+				{
+					if (this.mSelectedTile.selectPiece(this.boardViewColor).getNextStep(mDice.getValue()).equals(newStep))
+					{
+						this.mSelectedTile.deselect();
+						piece.moveToNest();
+						piece = this.mSelectedTile.selectPiece(this.boardViewColor);
+						piece.move(mDice.getValue());
+						piece.deselect();
+						this.mSelectedTile = null;
+						this.mState = State.NONE_SELECTED;
+						this.switchPlayer();
+					}
+				}
 			}
 			else if (newStep.free())
 			{
-				piece = this.mSelectedTile.removeSelectedPiece(this.boardViewColor);
-				newStep.putPiece(piece);
-				piece.setTile(newStep);
-				piece.deselect();
-				this.mSelectedTile = null;
-				this.mState = State.NONE_SELECTED;
-				this.switchPlayer();
+				piece = this.mSelectedTile.selectPiece(this.boardViewColor);
+				if (piece.getNextStep(mDice.getValue()).equals(newStep))
+				{
+					piece.move(mDice.getValue());
+					piece.deselect();
+					this.mSelectedTile = null;
+					this.mState = State.NONE_SELECTED;
+					this.switchPlayer();
+				}
 			}
 			break;
 		case BOTH_SELECTED:
-			assert(false);
+			throw new Exception("WTF, selected two Pieces? Give it a break!");
 		}
 
 		if (nextStep != null)
 		{
-			this.mNextStepGlobal.unsetNextStep();
+			if (this.mNextStepGlobal != null) 
+				this.mNextStepGlobal.unsetNextStep();
 			this.mNextStepGlobal = nextStep;
 			this.mNextStepGlobal.setNextStep();
 		}
 	}
-
-	private int findNextStep() {
-		int offset = 0;
-		int nestBase = 0;
-		int nest = 0;
-		int currentStep;
-		int nextStep = 0;
-		int roll = mDice.getValue();
-		switch (mPlayer) {
-		case BLUE:
-			offset = 1;
-			nestBase = 40;
-			nest = 57;
-			break;
-		case GREEN:
-			offset = 11;
-			nestBase = 44;
-			nest = 58;
-			break;
-		case RED:
-			offset = 21;
-			nestBase = 48;
-			nest = 59;
-			break;
-		case YELLOW:
-			offset = 31;
-			nestBase = 52;
-			nest = 60;
-			break;
-		}
-		Toast toast = Toast.makeText(getContext(), 
-				"offset: " + offset +
-				"\nnestBase: " + nestBase +
-				"\nnest: " + nest, Toast.LENGTH_SHORT);
-		toast.show();
-		/*
-		if (mSelectedPieceStep == nest)
-		{
-			nextStep = roll + offset - 1;
-			return nextStep;
-		} 
-		else if (mSelectedPieceStep == offset - 1)
-		{
-			if (roll == 5)
-			{
-				nextStep = 56;
-				return nextStep;
-			}
-			else if (roll == 6)
-			{
-				nextStep = nestBase + 3;
-				return nextStep;
-			}
-			else
-			{
-				nextStep = nestBase - 1 + roll;
-				return nextStep;
-			}
-		}
-		else if ((mSelectedPieceStep == offset - 2 &&
-				 roll == 6) ||
-				 (offset == 0 &&
-				 mSelectedPieceStep == 39))
-		{
-			nextStep = 56;
-			return nextStep;
-		}
-		else if (mSelectedPieceStep >= nestBase &&
-				 mSelectedPieceStep < nestBase + 4)
-		{
-			if (mSelectedPieceStep == nestBase + 3 &&
-				roll == 6)
-			{
-				nextStep = offset;
-				return nextStep;
-			}
-			else if (mSelectedPieceStep + roll == nestBase + 4)
-			{
-				nextStep = 56;
-				return nextStep;
-			}
-			else
-			{
-				nextStep = nestBase + 4 - Math.abs(mSelectedPieceStep + roll - (nestBase + 4));
-				return nextStep;
-			}
-		}
-				
-		currentStep = (mSelectedPieceStep - offset) % 40;
-		if (currentStep < 0)
-		{
-			currentStep += 40;
-		}
-		
-		if (currentStep + roll < 40)
-		{
-			nextStep = (currentStep + roll + offset) % 40;
-			if (nextStep < 0)
-			{
-				nextStep += 40;
-			}
-		}
-		else
-		{
-			nextStep = nestBase + (currentStep + roll) - 40;
-		}
-		
-		toast = Toast.makeText(getContext(), 
-				"nextStep: " + nextStep +
-				"\nnestBase: " + nestBase +
-				"\ncurrentStep: " + currentStep, Toast.LENGTH_SHORT);
-		toast.show();
-		*/
-		return nextStep;
-	}
-
 
 	private void switchPlayer() {
 		switch (mPlayer) {
@@ -919,7 +978,12 @@ public class BoardView extends View implements OnTouchListener {
 			step = findStep(x, y);
 			if (step != null)
 			{
-				registerClick(step);
+				try {
+					registerClick(step);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				found = true;
 			}
 			else 
@@ -927,7 +991,12 @@ public class BoardView extends View implements OnTouchListener {
 				nest = findNest(x, y);
 				if (nest != null)
 				{
-					registerClick(nest);
+					try {
+						registerClick(nest);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					found = true;
 				}
 				else if (mDice.pointInDice(x,y))
