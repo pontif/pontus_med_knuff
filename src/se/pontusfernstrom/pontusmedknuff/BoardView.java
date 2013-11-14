@@ -282,41 +282,59 @@ public class BoardView extends View implements OnTouchListener {
 		{
 			Step step;
 			
-			this.mBoardTile.remove(this);
-			if (this.mPosition == 0)
-			{
-				switch (this.mColor)
-				{
-				case Color.YELLOW:
-					this.mPosition += 10;
-				case Color.RED:
-					this.mPosition += 10;
-				case Color.GREEN:
-					this.mPosition += 10;
-				}
-			}
+			step = getNextStep(diceValue);
 			this.mPosition += diceValue;
-			step = mSteps[this.mPosition];
+			this.mBoardTile.remove(this);
 			step.putPiece(this);
 			this.setTile(step);
 		}
 
 		public Step getNextStep(int diceValue) {
-			int newPosition = this.mPosition;
-			if (newPosition == 0)
+			int newIndex = this.mPosition;
+			
+			newIndex += diceValue;
+			if (newIndex < 41)
 			{
-				switch (this.mColor)
-				{
-				case Color.YELLOW:
-					newPosition += 10;
-				case Color.RED:
-					newPosition += 10;
-				case Color.GREEN:
-					newPosition += 10;
-				}
+				newIndex = (newIndex + offset(this.mColor)) % 41;
+				return mSteps[newIndex];
 			}
-			newPosition += diceValue;
-			return mSteps[newPosition];
+			else //if (this.mPosition < 45)
+			{
+				newIndex = (newIndex + entranceOffset(this.mColor)) % 45;
+				return mSteps[newIndex];
+			}
+		}
+		
+		private int offset(int color)
+		{
+			int offset = 0;
+			switch (this.mColor)
+			{
+			case Color.YELLOW:
+				offset += 10;
+			case Color.RED:
+				offset += 10;
+			case Color.GREEN:
+				offset += 10;
+			}
+			
+			return offset;
+		}
+		
+		private int entranceOffset(int color)
+		{
+			int offset = 0;
+			switch (this.mColor)
+			{
+			case Color.YELLOW:
+				offset += 4;
+			case Color.RED:
+				offset += 4;
+			case Color.GREEN:
+				offset += 4;
+			}
+			
+			return offset;
 		}
 	}
 	
@@ -830,7 +848,7 @@ public class BoardView extends View implements OnTouchListener {
 			{
 				this.mSelectedTile = newStep;
 				this.mState = State.ONE_SELECTED;
-				nextStep = newStep.findNextStep(this.mDice.getValue());
+				nextStep = piece.getNextStep(mDice.getValue());// newStep.findNextStep(this.mDice.getValue());
 			}
 			break;
 		case ONE_SELECTED:
@@ -839,7 +857,7 @@ public class BoardView extends View implements OnTouchListener {
 				this.mSelectedTile.deselect();
 				newStep.selectPiece(this.boardViewColor);
 				this.mSelectedTile = newStep;
-				nextStep = newStep.findNextStep(this.mDice.getValue());
+				nextStep = piece.getNextStep(mDice.getValue());//= newStep.findNextStep(this.mDice.getValue());
 			}
 			else if (newStep.free())
 			{
