@@ -295,12 +295,12 @@ public class BoardView extends View implements OnTouchListener {
 			newIndex += diceValue;
 			if (newIndex < 41)
 			{
-				newIndex = (newIndex + offset(this.mColor)) % 41;
+				newIndex = (newIndex + offset(this.mColor)) % 40;
 				return mSteps[newIndex];
 			}
 			else //if (this.mPosition < 45)
 			{
-				newIndex = (newIndex + entranceOffset(this.mColor)) % 45;
+				newIndex = newIndex + entranceOffset(this.mColor) - 1;
 				return mSteps[newIndex];
 			}
 		}
@@ -335,6 +335,32 @@ public class BoardView extends View implements OnTouchListener {
 			}
 			
 			return offset;
+		}
+
+		public void moveToNest() throws Exception
+		{
+			Nest nest = getNest();
+			this.mPosition = 0;
+			this.mBoardTile.remove(this);
+			nest.putPiece(this);
+			this.setTile(nest);
+		}
+		
+		private Nest getNest() throws Exception
+		{
+			switch (this.mColor)
+			{
+			case Color.BLUE:
+				return mNests[0];
+			case Color.GREEN:
+				return mNests[1];
+			case Color.RED:
+				return mNests[2];
+			case Color.YELLOW:
+				return mNests[3];
+			default:
+				throw new Exception("Colour desn't exist");
+			}
 		}
 	}
 	
@@ -394,6 +420,12 @@ public class BoardView extends View implements OnTouchListener {
 			super(x, y, radius, color);
 			
 			initNest(color);
+		}
+
+		public void putPiece (Piece piece) throws Exception
+		{
+			if (!free()) throw new Exception("Step not free!");
+			this.mPieces[mNPieces++] = piece;
 		}
 
 		private void initNest(int color)
@@ -626,6 +658,10 @@ public class BoardView extends View implements OnTouchListener {
 			else return null;
 		}
 
+		public Piece selectAnyPiece(int boardViewColor) {
+			return this.mPiece;
+		}
+
 		@Override
 		public void deselect() throws Exception
 		{
@@ -814,13 +850,13 @@ public class BoardView extends View implements OnTouchListener {
 		case NONE_SELECTED:
 				this.mSelectedTile = nest;
 				this.mState = State.ONE_SELECTED;
-				nextStep = nest.findNextStep(this.mDice.getValue());
+				nextStep = piece.getNextStep(this.mDice.getValue());
 			break;
 		case ONE_SELECTED:
 				this.mSelectedTile.deselect();
 				nest.selectPiece(this.boardViewColor);
 				this.mSelectedTile = nest;
-				nextStep = nest.findNextStep(this.mDice.getValue());
+				nextStep = piece.getNextStep(this.mDice.getValue());
 			break;
 		case BOTH_SELECTED:
 			throw new Exception("WTF, selected two Pieces? Give it a break!");
@@ -828,7 +864,8 @@ public class BoardView extends View implements OnTouchListener {
 
 		if (nextStep != null)
 		{
-			this.mNextStepGlobal.unsetNextStep();
+			if (this.mNextStepGlobal != null) 
+				this.mNextStepGlobal.unsetNextStep();
 			this.mNextStepGlobal = nextStep;
 			this.mNextStepGlobal.setNextStep();
 		}
@@ -839,7 +876,7 @@ public class BoardView extends View implements OnTouchListener {
 		Piece piece;
 		Step nextStep = null;
 
-		piece = newStep.selectPiece(this.boardViewColor);
+		piece = newStep.selectAnyPiece(this.boardViewColor);
 		
 		switch (this.mState) 
 		{
@@ -854,10 +891,27 @@ public class BoardView extends View implements OnTouchListener {
 		case ONE_SELECTED:
 			if (piece != null)
 			{
-				this.mSelectedTile.deselect();
-				newStep.selectPiece(this.boardViewColor);
-				this.mSelectedTile = newStep;
-				nextStep = piece.getNextStep(mDice.getValue());//= newStep.findNextStep(this.mDice.getValue());
+				if (piece.getColor() == this.boardViewColor)
+				{
+					this.mSelectedTile.deselect();
+					newStep.selectPiece(this.boardViewColor);
+					this.mSelectedTile = newStep;
+					nextStep = piece.getNextStep(mDice.getValue());//= newStep.findNextStep(this.mDice.getValue());
+				}
+				else
+				{
+					if (this.mSelectedTile.selectPiece(this.boardViewColor).getNextStep(mDice.getValue()).equals(newStep))
+					{
+						this.mSelectedTile.deselect();
+						piece.moveToNest();
+						piece = this.mSelectedTile.selectPiece(this.boardViewColor);
+						piece.move(mDice.getValue());
+						piece.deselect();
+						this.mSelectedTile = null;
+						this.mState = State.NONE_SELECTED;
+						this.switchPlayer();
+					}
+				}
 			}
 			else if (newStep.free())
 			{
@@ -878,127 +932,12 @@ public class BoardView extends View implements OnTouchListener {
 
 		if (nextStep != null)
 		{
-			this.mNextStepGlobal.unsetNextStep();
+			if (this.mNextStepGlobal != null) 
+				this.mNextStepGlobal.unsetNextStep();
 			this.mNextStepGlobal = nextStep;
 			this.mNextStepGlobal.setNextStep();
 		}
 	}
-
-	private int findNextStep() {
-		int offset = 0;
-		int nestBase = 0;
-		int nest = 0;
-		int currentStep;
-		int nextStep = 0;
-		int roll = mDice.getValue();
-		switch (mPlayer) {
-		case BLUE:
-			offset = 1;
-			nestBase = 40;
-			nest = 57;
-			break;
-		case GREEN:
-			offset = 11;
-			nestBase = 44;
-			nest = 58;
-			break;
-		case RED:
-			offset = 21;
-			nestBase = 48;
-			nest = 59;
-			break;
-		case YELLOW:
-			offset = 31;
-			nestBase = 52;
-			nest = 60;
-			break;
-		}
-		Toast toast = Toast.makeText(getContext(), 
-				"offset: " + offset +
-				"\nnestBase: " + nestBase +
-				"\nnest: " + nest, Toast.LENGTH_SHORT);
-		toast.show();
-		/*
-		if (mSelectedPieceStep == nest)
-		{
-			nextStep = roll + offset - 1;
-			return nextStep;
-		} 
-		else if (mSelectedPieceStep == offset - 1)
-		{
-			if (roll == 5)
-			{
-				nextStep = 56;
-				return nextStep;
-			}
-			else if (roll == 6)
-			{
-				nextStep = nestBase + 3;
-				return nextStep;
-			}
-			else
-			{
-				nextStep = nestBase - 1 + roll;
-				return nextStep;
-			}
-		}
-		else if ((mSelectedPieceStep == offset - 2 &&
-				 roll == 6) ||
-				 (offset == 0 &&
-				 mSelectedPieceStep == 39))
-		{
-			nextStep = 56;
-			return nextStep;
-		}
-		else if (mSelectedPieceStep >= nestBase &&
-				 mSelectedPieceStep < nestBase + 4)
-		{
-			if (mSelectedPieceStep == nestBase + 3 &&
-				roll == 6)
-			{
-				nextStep = offset;
-				return nextStep;
-			}
-			else if (mSelectedPieceStep + roll == nestBase + 4)
-			{
-				nextStep = 56;
-				return nextStep;
-			}
-			else
-			{
-				nextStep = nestBase + 4 - Math.abs(mSelectedPieceStep + roll - (nestBase + 4));
-				return nextStep;
-			}
-		}
-				
-		currentStep = (mSelectedPieceStep - offset) % 40;
-		if (currentStep < 0)
-		{
-			currentStep += 40;
-		}
-		
-		if (currentStep + roll < 40)
-		{
-			nextStep = (currentStep + roll + offset) % 40;
-			if (nextStep < 0)
-			{
-				nextStep += 40;
-			}
-		}
-		else
-		{
-			nextStep = nestBase + (currentStep + roll) - 40;
-		}
-		
-		toast = Toast.makeText(getContext(), 
-				"nextStep: " + nextStep +
-				"\nnestBase: " + nestBase +
-				"\ncurrentStep: " + currentStep, Toast.LENGTH_SHORT);
-		toast.show();
-		*/
-		return nextStep;
-	}
-
 
 	private void switchPlayer() {
 		switch (mPlayer) {
