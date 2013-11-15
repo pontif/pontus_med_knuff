@@ -23,13 +23,13 @@ public class BoardView extends View implements OnTouchListener {
 		BOTH_SELECTED
 	}
 	
-	private static enum Player
+	/*private static enum Player
 	{
 		BLUE,
 		GREEN,
 		RED,
 		YELLOW
-	}
+	}*/
 	
 	private final int N_STEPS = 57;
 	private final int N_NESTS = 4;
@@ -51,7 +51,7 @@ public class BoardView extends View implements OnTouchListener {
 	//private int mSelectedPieceStep;
 	private BoardTile mSelectedTile;
 	private Step mNextStepGlobal;
-	private Player mPlayer;
+	//private Player mPlayer;
 	private int boardViewColor;
 	private Dice mDice;
 	
@@ -98,7 +98,7 @@ public class BoardView extends View implements OnTouchListener {
 	private void initBoardView() {
 		this.mState = State.NONE_SELECTED;
 		this.mNextStepGlobal = null;
-		this.mPlayer = Player.BLUE;
+		//this.mPlayer = Player.BLUE;
 		this.mDice = new Dice();
 		this.boardViewColor = Color.BLUE;
 	}
@@ -741,14 +741,14 @@ public class BoardView extends View implements OnTouchListener {
 
 		public void reset() 
 		{
-			setPlayer(mPlayer);
+			setPlayer(boardViewColor);
 			mValue = 0;
 		}
 
 		private void initDice()
 		{
 			mRect = new RectF();
-			setPlayer(mPlayer);
+			setPlayer(boardViewColor);
 			mRand = new Random();
 			this.rollDice();
 		}
@@ -758,21 +758,21 @@ public class BoardView extends View implements OnTouchListener {
 			mValue = mRand.nextInt(6) + 1;
 		}
 
-		public void setPlayer(Player player)
+		public void setPlayer(int player)
 		{
 			mValue = 0;
 
 			switch (player) {
-			case BLUE:
+			case Color.BLUE:
 				mRect.set((float)(10.5 * mStepBox), (float)(0.5 * mStepBox), (float)(11.5 * mStepBox), (float)(1.5 * mStepBox));
 				break;
-			case GREEN:
+			case Color.GREEN:
 				mRect.set((float)(10.5 * mStepBox), (float)(10.5 * mStepBox), (float)(11.5 * mStepBox), (float)(11.5 * mStepBox));
 				break;
-			case RED:
+			case Color.RED:
 				mRect.set((float)(0.5 * mStepBox), (float)(10.5 * mStepBox), (float)(1.5 * mStepBox), (float)(11.5 * mStepBox));
 				break;
-			case YELLOW:
+			case Color.YELLOW:
 				mRect.set((float)(0.5 * mStepBox), (float)(0.5 * mStepBox), (float)(1.5 * mStepBox), (float)(1.5 * mStepBox));
 				break;
 			default:
@@ -972,25 +972,25 @@ public class BoardView extends View implements OnTouchListener {
 	}
 
 	private void switchPlayer() {
-		switch (mPlayer) {
-		case BLUE:
-			mPlayer = Player.GREEN;
+		switch (boardViewColor) {
+		case Color.BLUE:
+			//mPlayer = Player.GREEN;
 			boardViewColor = Color.GREEN;
 			break;
-		case GREEN:
-			mPlayer = Player.RED;
+		case Color.GREEN:
+			//mPlayer = Player.RED;
 			boardViewColor = Color.RED;
 			break;
-		case RED:
-			mPlayer = Player.YELLOW;
+		case Color.RED:
+			//mPlayer = Player.YELLOW;
 			boardViewColor = Color.YELLOW;
 			break;
-		case YELLOW:
-			mPlayer = Player.BLUE;
+		case Color.YELLOW:
+			//mPlayer = Player.BLUE;
 			boardViewColor = Color.BLUE;
 			break;
 		}
-		mDice.setPlayer(mPlayer);
+		mDice.setPlayer(boardViewColor);
 	}
 
 	@Override
