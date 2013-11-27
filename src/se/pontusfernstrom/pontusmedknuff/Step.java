@@ -1,6 +1,5 @@
 package se.pontusfernstrom.pontusmedknuff;
 
-import se.pontusfernstrom.pontusmedknuff.BoardView.Piece;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -66,7 +65,7 @@ public class Step extends BoardTile {
 		canvas.drawCircle((float)super.x, (float)super.y, (float)(super.radius * 0.8), paint);
 	}
 
-	public void drawPieces(Canvas canvas) 
+	public void drawPieces(float pieceRadius, Canvas canvas) 
 	{
 		Paint paint = new Paint();
 		int pieceIdx;
@@ -82,11 +81,11 @@ public class Step extends BoardTile {
 			// Temporarily set to center first and put second completely off
 			x = super.x + super.radius * 0.4 * (0 + 2 * pieceIdx);
 			y = super.y + super.radius * 0.4 * (0 + 2 * pieceIdx);
-			edgeRadius = mPieceRadius * selectMultiplier;
-			centerRadius = edgeRadius - EDGE_WIDTH * mPieceRadius;
+			edgeRadius = pieceRadius * selectMultiplier;
+			centerRadius = edgeRadius - BoardView.EDGE_WIDTH * pieceRadius;
 			paint.setColor(Color.WHITE);
 			canvas.drawCircle((float)x, (float)y, (float)edgeRadius, paint);
-			paint.setColor(this.mPiece.getColor());
+			paint.setColor(mPiece.getPlayer().getColor());
 			canvas.drawCircle((float)x, (float)y, (float)centerRadius, paint);
 		}
 	}
@@ -107,9 +106,9 @@ public class Step extends BoardTile {
 	}
 
 	@Override
-	public Piece selectPiece(int color) 
+	public Piece selectPiece(Player player) 
 	{
-		if (this.mNPieces > 0 && this.mPiece.getColor() == color)
+		if (this.mNPieces > 0 && this.mPiece.getPlayer() == player)
 		{
 			this.mPiece.select();
 			return this.mPiece;
@@ -134,10 +133,10 @@ public class Step extends BoardTile {
 	}
 
 	@Override
-	public Piece removeSelectedPiece(int color) throws Exception
+	public Piece removeSelectedPiece(Player player) throws Exception
 	{
 		Piece piece;
-		if(this.mPiece.getColor() != color) throw new Exception("Color mismatch between Piece and Step");
+		if(this.mPiece.getPlayer() != player) throw new Exception("Color mismatch between Piece and Step");
 		switch (mNPieces)
 		{
 		case 2:

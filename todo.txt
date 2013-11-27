@@ -8,12 +8,12 @@ Y -- Handle entrances
 Y -- Bug if selected tile is not according to dice and the latter is occupied
 N -- Follow up-bug: Can select multiple pieces after above issue is manifested
 Y Handle end point
+Y Take Piece and Dice out of BoardView by first removing accesses to local variables
+Y Implement player class
+Y Implement reroll at 6
 
-Take Piece and Dice out of BoardView by first removing accesses to local variables
 
-Implement player class
 Implement leaving nest on 1 and 6 only
-Implement reroll at 6
 Implement AI
 Implement linked list of board tiles
   -- With this the Pieces doesn't have to access mSteps etc.

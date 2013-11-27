@@ -1,6 +1,5 @@
 package se.pontusfernstrom.pontusmedknuff;
 
-import se.pontusfernstrom.pontusmedknuff.BoardView.Piece;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 
@@ -44,8 +43,8 @@ public abstract class BoardTile {
 		return null;
 	}
 
-	public abstract Piece selectPiece(int color);
-	public abstract Piece removeSelectedPiece(int color) throws Exception;
+	public abstract Piece selectPiece(Player player);
+	public abstract Piece removeSelectedPiece(Player player) throws Exception;
 	public abstract void remove(Piece piece) throws Exception;
 	public abstract void deselect() throws Exception;
 	public abstract boolean free();

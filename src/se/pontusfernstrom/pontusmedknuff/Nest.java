@@ -1,6 +1,5 @@
 package se.pontusfernstrom.pontusmedknuff;
 
-import se.pontusfernstrom.pontusmedknuff.BoardView.Piece;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -22,7 +21,7 @@ public class Nest extends BoardTile {
 		this.mPieces[mNPieces++] = piece;
 	}
 
-	public void setPlayer(Player player)
+	public void setPlayer(BoardView boardView, Player player)
 	{
 		int piece;
 		
@@ -30,25 +29,20 @@ public class Nest extends BoardTile {
 		
 		for (piece = 0; piece < mPieces.length; piece++)
 		{
-			mPieces[piece] = new Piece(this, player);
+			mPieces[piece] = new Piece(boardView, this, player);
 			mNPieces++;
 		}
 	}
 
 	@Override
-	public Piece selectPiece(int color) {
-		Piece piece;
-		int pieceIdx;
-		for (pieceIdx = 0; pieceIdx < this.mNPieces; pieceIdx++)
+	public Piece selectPiece(Player player) {
+		Piece piece = null;
+		if (mPlayer == player && mNPieces > 0)
 		{
-			piece = mPieces[pieceIdx];
-			if (piece.getPlayer().equals(mPlayer)) 
-			{
-				piece.select();
-				return piece;
-			}
+			piece = mPieces[this.mNPieces - 1];
+			piece.select();
 		}
-		return null;
+		return piece;
 	}
 
 	@Override
@@ -68,11 +62,11 @@ public class Nest extends BoardTile {
 	}
 
 	@Override
-	public Piece removeSelectedPiece(int color) {
+	public Piece removeSelectedPiece(Player player) {
 		Piece piece;
 		int pieceIdx = 0;
 		while (pieceIdx < this.mNPieces &&
-				this.mPieces[pieceIdx].getColor() != color)
+				this.mPieces[pieceIdx].getPlayer() != player)
 		{
 			pieceIdx++;
 		}
@@ -113,7 +107,7 @@ public class Nest extends BoardTile {
 		return mNPieces < N_PIECES_PER_PLAYER;
 	}
 	
-	public void drawPieces(Canvas canvas) {
+	public void drawPieces(Canvas canvas, float pieceRadius) {
 		Paint paint;
 		Piece piece;
 		int pieceIdx;
@@ -132,11 +126,11 @@ public class Nest extends BoardTile {
 				selectMultiplier = piece.getSelected() ? 1.5 : 1;
 				x = super.x + super.radius * 0.4 * (-1 + 2 * Math.floor(pieceIdx / 2));
 				y = super.y + super.radius * 0.4 * (-1 + 2 * (pieceIdx % 2));
-				edgeRadius = mPieceRadius * selectMultiplier;
-				centerRadius = edgeRadius - EDGE_WIDTH * mPieceRadius;
+				edgeRadius = pieceRadius * selectMultiplier;
+				centerRadius = edgeRadius - BoardView.EDGE_WIDTH * pieceRadius;
 				paint.setColor(Color.WHITE);
 				canvas.drawCircle((float)x, (float)y, (float)edgeRadius, paint);
-				paint.setColor(piece.getColor());
+				paint.setColor(this.color);
 				canvas.drawCircle((float)x, (float)y, (float)centerRadius, paint);
 			}
 		}
